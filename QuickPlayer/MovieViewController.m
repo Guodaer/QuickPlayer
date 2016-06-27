@@ -10,6 +10,7 @@
 #import <AVKit/AVKit.h>
 #import "GD_CustomCenter.h"
 #import "PlayerView.h"
+#define PlayerViewFrame(width,height) CGRectMake(0, 20, width, height)
 @interface MovieViewController ()<PlayerViewDelegate>
 {
     PlayerView *_playerView;
@@ -32,13 +33,14 @@
 }
 #pragma mark - 初始化
 - (void)makeUpPlayerView {
-    _playerView = [[PlayerView alloc] initWithFrame:CGRectMake(0, 0, SCREENWIDTH, 200)];
+    _playerView = [[PlayerView alloc] initWithFrame:PlayerViewFrame(SCREENWIDTH, 200)];
     _playerView.gd_delegate = self;
-    _playerView.backgroundColor = [UIColor blackColor];
+    _playerView.backgroundColor = [UIColor yellowColor];
     [self.view addSubview:_playerView];
-    
-//    NSURL *videoUrl = [NSURL URLWithString:@"http://v.jxvdy.com/sendfile/w5bgP3A8JgiQQo5l0hvoNGE2H16WbN09X-ONHPq3P3C1BISgf7C-qVs6_c8oaw3zKScO78I--b0BGFBRxlpw13sf2e54QA"];
-//    self.playerItem = [AVPlayerItem playerItemWithURL:videoUrl];
+#if 1
+    NSURL *videoUrl = [NSURL URLWithString:@"http://v.jxvdy.com/sendfile/w5bgP3A8JgiQQo5l0hvoNGE2H16WbN09X-ONHPq3P3C1BISgf7C-qVs6_c8oaw3zKScO78I--b0BGFBRxlpw13sf2e54QA"];
+    self.playerItem = [AVPlayerItem playerItemWithURL:videoUrl];
+#endif
     [self.playerItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];//获取到视频信息的状态, 成功就可以进行播放, 失败代表加载失败
     
     [self.playerItem addObserver:self forKeyPath:@"loadedTimeRanges" options:NSKeyValueObservingOptionNew context:nil];////当缓冲进度有变化的时候
@@ -61,10 +63,7 @@
 
     
 }
--(UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
-{
-    return UIInterfaceOrientationLandscapeRight;//横屏
-}
+
 //-(BOOL)prefersStatusBarHidden
 //{
 //    return YES;
@@ -85,12 +84,9 @@
                 [[UIApplication sharedApplication] setStatusBarHidden:YES];
 
                 _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
-//                _playerView.center = CGPointMake(SCREENHEIGHT/2, SCREENWIDTH/2);
-//                _playerView.transform = CGAffineTransformMakeRotation(M_PI_2);
                 [_playerView clearViewUpdate_scaleScreen];
             } completion:^(BOOL finished) {
                 _isVertical = NO;
-//
             }];
         }else {
             [UIView animateWithDuration:0.3 animations:^{
@@ -98,13 +94,10 @@
                 self.navigationController.view.frame = [UIScreen mainScreen].bounds;
                 [[UIApplication sharedApplication] setStatusBarHidden:NO];
 
-//                _playerView.transform = CGAffineTransformMakeRotation(0);
-                _playerView.frame = CGRectMake(0, 0, SCREENWIDTH, 200);
-//                _playerView.center = CGPointMake(SCREENWIDTH/2, 100);
+                _playerView.frame = PlayerViewFrame(SCREENWIDTH, 200);
                 [_playerView clearViewUpdate_scaleScreen];
             } completion:^(BOOL finished) {
                 _isVertical = YES;
-//
             }];
         }
 #endif
@@ -154,9 +147,12 @@
         NSLog(@"playbackBufferFull: change : %@", change);
         
     }else if([keyPath isEqualToString:@"presentationSize"]){      //获取到视频的大小的时候调用
-        CGSize size = _playerItem.presentationSize;
+//        CGSize size = _playerItem.presentationSize;
         //适应电影播放尺寸的大小
-        _playerView.frame = CGRectMake(0, 64, SCREENWIDTH, (SCREENWIDTH*size.height)/size.width);
+        if (_isVertical) {
+//            _playerView.frame = PlayerViewFrame( SCREENWIDTH, (SCREENWIDTH*size.height)/size.width);
+        }
+        
     }
     
 }
