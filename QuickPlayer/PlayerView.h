@@ -26,7 +26,14 @@
 @property (nonatomic, strong) UIView *clearView;
 @property (nonatomic ,strong) UIView *topView;
 @property (nonatomic, strong) UIView *underView;
+@property (nonatomic, assign) BOOL isPortrait;
 
 - (void)clearViewUpdate_scaleScreen;
+
+#pragma mark - 变竖屏
+- (void)InterfaceOrientationPortraitor;
+
+#pragma mark - 变横屏
+- (void)InterfaceOrientationLandscapeLeft;
 
 @end

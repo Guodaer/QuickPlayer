@@ -20,7 +20,7 @@
 - (instancetype) initWithFrame:(CGRect)frame{
     self = [super initWithFrame:frame];
     if (self) {
-        
+        _isPortrait = YES;
     }
     return self;
 }
@@ -31,6 +31,7 @@
     _clearView = [[UIView alloc] initWithFrame:self.bounds];
     _clearView.backgroundColor = [UIColor clearColor];
     _clearView.userInteractionEnabled = YES;
+    
     [self addSubview:_clearView];
     [self setupControlView];
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(clearViewTapGesture:)];
@@ -45,7 +46,7 @@
 - (void)clearViewTapGesture:(UITapGestureRecognizer *)tab {
     if (_isHidden) {
         [UIView animateWithDuration:0.3 animations:^{
-            _topView.alpha = 1;
+            [self isPortraitorLandscapeRight];
             _underView.alpha = 1;
         } completion:^(BOOL finished) {
             _isHidden = NO;
@@ -54,12 +55,35 @@
         [UIView animateWithDuration:0.3 animations:^{
             _topView.alpha = 0;
             _underView.alpha = 0;
+            if (!_isPortrait) {
+                [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationSlide];
+            }
         } completion:^(BOOL finished) {
             _isHidden = YES;
         }];
     }
 }
-#pragma mark - 上线两块View
+#pragma mark - 判断是竖屏还是横屏tap
+- (void)isPortraitorLandscapeRight {
+    if (_isPortrait) {
+        _topView.alpha = 0;
+    }else{
+        [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationSlide];
+        _topView.alpha = 1;
+    }
+}
+#pragma mark - 变竖屏
+- (void)InterfaceOrientationPortraitor {
+    _topView.alpha = 0;
+}
+#pragma mark - 变横屏
+- (void)InterfaceOrientationLandscapeLeft {
+
+    if (!_isHidden) {
+        [self isPortraitorLandscapeRight];
+    }
+}
+#pragma mark - 上下两块View
 - (void)setupControlView {
     
     _topView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, 44)];
@@ -96,6 +120,9 @@
     }
 }
 #pragma mark - Setting方法
+- (void)setIsPortrait:(BOOL)isPortrait{
+    _isPortrait = isPortrait;
+}
 - (void)setClearView:(UIView *)clearView {
     _clearView = clearView;
 }

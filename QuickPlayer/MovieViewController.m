@@ -19,6 +19,7 @@
 
 @property (retain, nonatomic) AVPlayer *player;
 @property (nonatomic ,retain) AVPlayerItem *playerItem;
+@property (nonatomic, strong) UIButton *systemReturnBtn;
 
 @end
 
@@ -30,12 +31,29 @@
     self.view.backgroundColor = [UIColor whiteColor];
     _isVertical = YES;
     [self makeUpPlayerView];
+    self.systemReturnBtn.hidden = NO;
+}
+- (UIButton *)systemReturnBtn{
+    if (!_systemReturnBtn) {
+        UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+        button.frame = CGRectMake(10, 23, 40, 40);
+        [button setImage:XUIImage(@"returnBtn") forState:UIControlStateNormal];
+        [button setImageEdgeInsets:UIEdgeInsetsMake(10, 8, 10, 20)];
+        [button addTarget:self action:@selector(returnButton:) forControlEvents:UIControlEventTouchUpInside];
+        [self.view addSubview:button];
+        _systemReturnBtn = button;
+    }
+    [self.view bringSubviewToFront:_systemReturnBtn];
+    return _systemReturnBtn;
+}
+- (void)returnButton:(UIButton *)sender{
+    [self.navigationController popViewControllerAnimated:YES];
 }
 #pragma mark - 初始化
 - (void)makeUpPlayerView {
     _playerView = [[PlayerView alloc] initWithFrame:PlayerViewFrame(SCREENWIDTH, 200)];
     _playerView.gd_delegate = self;
-    _playerView.backgroundColor = [UIColor yellowColor];
+    _playerView.backgroundColor = [UIColor blackColor];
     [self.view addSubview:_playerView];
 #if 1
     NSURL *videoUrl = [NSURL URLWithString:@"http://v.jxvdy.com/sendfile/w5bgP3A8JgiQQo5l0hvoNGE2H16WbN09X-ONHPq3P3C1BISgf7C-qVs6_c8oaw3zKScO78I--b0BGFBRxlpw13sf2e54QA"];
@@ -58,48 +76,60 @@
     _playerView.player = self.player;
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(moviePlayDidEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
-    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
+
     [self playBtn];
 
     
 }
-
-//-(BOOL)prefersStatusBarHidden
-//{
-//    return YES;
-//}
+#pragma mark - 旋转的通知
+-(void)orientationChanged:(NSNotification *)notification{
+    [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
+}
+#pragma mark - 关闭设备自动旋转, 然后手动监测设备旋转方向来旋转avplayerView
+-(BOOL)shouldAutorotate{
+    return NO;
+}
 
 #pragma mark - gd_deledate
 - (void)playerBtndidClicked:(UIButton *)sender{
 
     if (sender.tag == FULLBUTTON_TAG) {
 #if 1
-        if (_isVertical) {
-            
+            if ([[UIDevice currentDevice] respondsToSelector:@selector(setOrientation:)]) {
+                SEL selector = NSSelectorFromString(@"setOrientation:");
+                NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:[UIDevice instanceMethodSignatureForSelector:selector]];
+                [invocation setSelector:selector];
+                [invocation setTarget:[UIDevice currentDevice]];
+                int val;
+                [self.view bringSubviewToFront:_playerView];
+                if (_isVertical) {
+                    self.navigationController.interactivePopGestureRecognizer.enabled = NO;
+                    val = UIInterfaceOrientationLandscapeRight;
+                    _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
+                    [_playerView clearViewUpdate_scaleScreen];
+                    _playerView.topView.frame = CGRectMake(0, 0, SCREENHEIGHT, 44);
+                    _playerView.underView.frame = CGRectMake(0, SCREENWIDTH-44, SCREENHEIGHT, 44);
+                    _playerView.isPortrait = NO;
+                    [_playerView InterfaceOrientationLandscapeLeft];
+                    _isVertical = NO;
+                }else{
+                    self.navigationController.interactivePopGestureRecognizer.enabled = YES;
+                    self.navigationController.interactivePopGestureRecognizer.delegate = nil;
+                    val = UIInterfaceOrientationPortrait;
+                    _playerView.frame = CGRectMake(0, 20, SCREENHEIGHT, 200);
+                    [_playerView clearViewUpdate_scaleScreen];
+                    _playerView.topView.frame = CGRectMake(0, 0, SCREENHEIGHT, 44);
+                    _playerView.underView.frame = CGRectMake(0, 200-44, SCREENHEIGHT, 44);
+                    _playerView.isPortrait = YES;
+                    [_playerView InterfaceOrientationPortraitor];
+                    _isVertical = YES;
+                    self.systemReturnBtn.hidden = NO;
 
-            [self.view bringSubviewToFront:_playerView];
-            [UIView animateWithDuration:0.3 animations:^{
-                self.navigationController.view.transform = CGAffineTransformMakeRotation(M_PI/2);
-                self.navigationController.view.frame = CGRectMake(0, 0, SCREENWIDTH, SCREENHEIGHT);
-                [[UIApplication sharedApplication] setStatusBarHidden:YES];
-
-                _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
-                [_playerView clearViewUpdate_scaleScreen];
-            } completion:^(BOOL finished) {
-                _isVertical = NO;
-            }];
-        }else {
-            [UIView animateWithDuration:0.3 animations:^{
-                self.navigationController.view.transform = CGAffineTransformIdentity;
-                self.navigationController.view.frame = [UIScreen mainScreen].bounds;
-                [[UIApplication sharedApplication] setStatusBarHidden:NO];
-
-                _playerView.frame = PlayerViewFrame(SCREENWIDTH, 200);
-                [_playerView clearViewUpdate_scaleScreen];
-            } completion:^(BOOL finished) {
-                _isVertical = YES;
-            }];
-        }
+                }
+                [invocation setArgument:&val atIndex:2];
+                [invocation invoke];
+            }
 #endif
     }
     
@@ -147,12 +177,7 @@
         NSLog(@"playbackBufferFull: change : %@", change);
         
     }else if([keyPath isEqualToString:@"presentationSize"]){      //获取到视频的大小的时候调用
-//        CGSize size = _playerItem.presentationSize;
-        //适应电影播放尺寸的大小
-        if (_isVertical) {
-//            _playerView.frame = PlayerViewFrame( SCREENWIDTH, (SCREENWIDTH*size.height)/size.width);
-        }
-        
+       //CGSize size = _playerItem.presentationSize;
     }
     
 }
@@ -177,7 +202,6 @@
     [self.playerItem removeObserver:self forKeyPath:@"playbackBufferEmpty" context:nil];
     [self.playerItem removeObserver:self forKeyPath:@"playbackBufferFull" context:nil];
     [self.playerItem removeObserver:self forKeyPath:@"presentationSize" context:nil];
-
     [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:self.playerItem];
 }
 - (void)didReceiveMemoryWarning {
@@ -197,9 +221,36 @@
 }
 - (void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
+//    self.navigationItem.hidesBackButton = YES;
     self.navigationController.navigationBarHidden = YES;
 }
-
+#pragma mark - 旋转当前view的方法
+#if 0
+if (_isVertical) {
+    
+    [self.view bringSubviewToFront:_playerView];
+    [UIView animateWithDuration:0.3 animations:^{
+        self.navigationController.view.transform = CGAffineTransformMakeRotation(M_PI/2);
+        self.navigationController.view.frame = CGRectMake(0, 0, SCREENWIDTH, SCREENHEIGHT);
+        
+        _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
+        [_playerView clearViewUpdate_scaleScreen];
+    } completion:^(BOOL finished) {
+        _isVertical = NO;
+    }];
+}else {
+    [UIView animateWithDuration:0.3 animations:^{
+        self.navigationController.view.transform = CGAffineTransformIdentity;
+        self.navigationController.view.frame = [UIScreen mainScreen].bounds;
+        [[UIApplication sharedApplication] setStatusBarHidden:NO];
+        
+        _playerView.frame = PlayerViewFrame(SCREENWIDTH, 200);
+        [_playerView clearViewUpdate_scaleScreen];
+    } completion:^(BOOL finished) {
+        _isVertical = YES;
+    }];
+}
+#endif
 
 /*
 #pragma mark - Navigation
