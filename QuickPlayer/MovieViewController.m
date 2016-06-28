@@ -11,6 +11,14 @@
 #import "GD_CustomCenter.h"
 #import "PlayerView.h"
 #define PlayerViewFrame(width,height) CGRectMake(0, 20, width, height)
+#define PlayerUrl @"http://v.jxvdy.com/sendfile/w5bgP3A8JgiQQo5l0hvoNGE2H16WbN09X-ONHPq3P3C1BISgf7C-qVs6_c8oaw3zKScO78I--b0BGFBRxlpw13sf2e54QA"
+NSString * const Player_Status = @"status";                                 //获取到视频信息的状态, 成功就可以进行播放, 失败代表加载失败
+NSString * const Player_LoadedTimeRanges = @"loadedTimeRanges";             //当缓冲进度有变化的时候
+NSString * const Player_PlaybackLikelyToKeepUp = @"playbackLikelyToKeepUp"; //当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
+NSString * const Player_PlaybackBufferEmpty = @"playbackBufferEmpty";       //当没有任何缓冲部分可以播放的时候
+NSString * const Player_PlaybackBufferFull = @"playbackBufferFull";         //缓冲完成
+NSString * const Player_PresentationSize = @"presentationSize";             //获取到视频的大小的时候调用
+
 @interface MovieViewController ()<PlayerViewDelegate>
 {
     PlayerView *_playerView;
@@ -35,6 +43,9 @@
 }
 - (UIButton *)systemReturnBtn{
     if (!_systemReturnBtn) {
+        UIView *blackView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREENWIDTH, 20)];
+        blackView.backgroundColor = XUIColor(0x000000, 0.9);
+        [self.view addSubview:blackView];
         UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
         button.frame = CGRectMake(10, 23, 40, 40);
         [button setImage:XUIImage(@"returnBtn") forState:UIControlStateNormal];
@@ -51,35 +62,25 @@
 }
 #pragma mark - 初始化
 - (void)makeUpPlayerView {
-    _playerView = [[PlayerView alloc] initWithFrame:PlayerViewFrame(SCREENWIDTH, 200)];
+    _playerView = [[PlayerView alloc] initWithFrame:PlayerViewFrame(SCREENWIDTH, 250)];
     _playerView.gd_delegate = self;
     _playerView.backgroundColor = [UIColor blackColor];
     [self.view addSubview:_playerView];
 #if 1
-    NSURL *videoUrl = [NSURL URLWithString:@"http://v.jxvdy.com/sendfile/w5bgP3A8JgiQQo5l0hvoNGE2H16WbN09X-ONHPq3P3C1BISgf7C-qVs6_c8oaw3zKScO78I--b0BGFBRxlpw13sf2e54QA"];
+    NSURL *videoUrl = [NSURL URLWithString:PlayerUrl];
     self.playerItem = [AVPlayerItem playerItemWithURL:videoUrl];
 #endif
-    [self.playerItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];//获取到视频信息的状态, 成功就可以进行播放, 失败代表加载失败
-    
-    [self.playerItem addObserver:self forKeyPath:@"loadedTimeRanges" options:NSKeyValueObservingOptionNew context:nil];////当缓冲进度有变化的时候
-    
-    [self.playerItem addObserver:self forKeyPath:@"playbackLikelyToKeepUp" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];//当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
-    
-    [self.playerItem addObserver:self forKeyPath:@"playbackBufferEmpty" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];//当没有任何缓冲部分可以播放的时候
-    
-    [self.playerItem addObserver:self forKeyPath:@"playbackBufferFull" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];
-    
-    [self.playerItem addObserver:self forKeyPath:@"presentationSize" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];//获取到视频的大小的时候调用
-    
+    [self.playerItem addObserver:self forKeyPath:Player_Status options:NSKeyValueObservingOptionNew context:nil];
+    [self.playerItem addObserver:self forKeyPath:Player_LoadedTimeRanges options:NSKeyValueObservingOptionNew context:nil];
+    [self.playerItem addObserver:self forKeyPath:Player_PlaybackLikelyToKeepUp options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];
+    [self.playerItem addObserver:self forKeyPath:Player_PlaybackBufferEmpty options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];
+    [self.playerItem addObserver:self forKeyPath:Player_PlaybackBufferFull options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];
+    [self.playerItem addObserver:self forKeyPath:Player_PresentationSize options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];
     self.player = [AVPlayer playerWithPlayerItem:self.playerItem];
-    
     _playerView.player = self.player;
-    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(moviePlayDidEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationChanged:) name:UIDeviceOrientationDidChangeNotification object:nil];
-
     [self playBtn];
-
     
 }
 #pragma mark - 旋转的通知
@@ -95,42 +96,55 @@
 - (void)playerBtndidClicked:(UIButton *)sender{
 
     if (sender.tag == FULLBUTTON_TAG) {
-#if 1
-            if ([[UIDevice currentDevice] respondsToSelector:@selector(setOrientation:)]) {
-                SEL selector = NSSelectorFromString(@"setOrientation:");
-                NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:[UIDevice instanceMethodSignatureForSelector:selector]];
-                [invocation setSelector:selector];
-                [invocation setTarget:[UIDevice currentDevice]];
-                int val;
-                [self.view bringSubviewToFront:_playerView];
-                if (_isVertical) {
-                    self.navigationController.interactivePopGestureRecognizer.enabled = NO;
-                    val = UIInterfaceOrientationLandscapeRight;
-                    _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
-                    [_playerView clearViewUpdate_scaleScreen];
-                    _playerView.topView.frame = CGRectMake(0, 0, SCREENHEIGHT, 44);
-                    _playerView.underView.frame = CGRectMake(0, SCREENWIDTH-44, SCREENHEIGHT, 44);
-                    _playerView.isPortrait = NO;
-                    [_playerView InterfaceOrientationLandscapeLeft];
-                    _isVertical = NO;
-                }else{
-                    self.navigationController.interactivePopGestureRecognizer.enabled = YES;
-                    self.navigationController.interactivePopGestureRecognizer.delegate = nil;
-                    val = UIInterfaceOrientationPortrait;
-                    _playerView.frame = CGRectMake(0, 20, SCREENHEIGHT, 200);
-                    [_playerView clearViewUpdate_scaleScreen];
-                    _playerView.topView.frame = CGRectMake(0, 0, SCREENHEIGHT, 44);
-                    _playerView.underView.frame = CGRectMake(0, 200-44, SCREENHEIGHT, 44);
-                    _playerView.isPortrait = YES;
-                    [_playerView InterfaceOrientationPortraitor];
-                    _isVertical = YES;
-                    self.systemReturnBtn.hidden = NO;
-
-                }
-                [invocation setArgument:&val atIndex:2];
-                [invocation invoke];
+        if ([[UIDevice currentDevice] respondsToSelector:@selector(setOrientation:)]) {
+            SEL selector = NSSelectorFromString(@"setOrientation:");
+            NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:[UIDevice instanceMethodSignatureForSelector:selector]];
+            [invocation setSelector:selector];
+            [invocation setTarget:[UIDevice currentDevice]];
+            int val;
+            [self.view bringSubviewToFront:_playerView];
+            if (_isVertical) {
+                self.navigationController.interactivePopGestureRecognizer.enabled = NO;
+                val = UIInterfaceOrientationLandscapeRight;
+                _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
+                [_playerView clearViewUpdate_scaleScreen];
+                _playerView.topView.frame = CGRectMake(0, 0, SCREENHEIGHT, 50);
+                _playerView.underView.frame = CGRectMake(0, SCREENWIDTH-50, SCREENHEIGHT, 50);
+                _playerView.isPortrait = NO;
+                [_playerView InterfaceOrientationLandscapeLeft];
+                _isVertical = NO;
             }
-#endif
+            [invocation setArgument:&val atIndex:2];
+            [invocation invoke];
+        }
+    }else if (sender.tag == ReturnFullBtn_Tag){
+        if ([[UIDevice currentDevice] respondsToSelector:@selector(setOrientation:)]) {
+            SEL selector = NSSelectorFromString(@"setOrientation:");
+            NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:[UIDevice instanceMethodSignatureForSelector:selector]];
+            [invocation setSelector:selector];
+            [invocation setTarget:[UIDevice currentDevice]];
+            int val;
+            [self.view bringSubviewToFront:_playerView];
+            
+            self.navigationController.interactivePopGestureRecognizer.enabled = YES;
+            self.navigationController.interactivePopGestureRecognizer.delegate = nil;
+            val = UIInterfaceOrientationPortrait;
+            _playerView.frame = CGRectMake(0, 20, SCREENHEIGHT, 250);
+            [_playerView clearViewUpdate_scaleScreen];
+            _playerView.topView.frame = CGRectMake(0, 0, SCREENHEIGHT, 44);
+            _playerView.underView.frame = CGRectMake(0, 250-44, SCREENHEIGHT, 44);
+            _playerView.isPortrait = YES;
+            [_playerView InterfaceOrientationPortraitor];
+            _isVertical = YES;
+            self.systemReturnBtn.hidden = NO;
+            
+            [invocation setArgument:&val atIndex:2];
+            [invocation invoke];
+        }
+        
+    }else if (sender.tag == PlayButton_Tag){
+        GDLog(@"play-start");
+        
     }
     
 }
@@ -150,7 +164,7 @@
     [self.player play];
 }
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
-    if ([keyPath isEqualToString:@"status"]) {        //获取到视频信息的状态, 成功就可以进行播放, 失败代表加载失败
+    if ([keyPath isEqualToString:Player_Status]) {
         if (self.playerItem.status == AVPlayerItemStatusReadyToPlay) {   //准备好播放
             GDLog(@"贮备好播放");
         }else if(self.playerItem.status == AVPlayerItemStatusFailed){    //加载失败
@@ -158,7 +172,7 @@
         }else if(self.playerItem.status == AVPlayerItemStatusUnknown){   //未知错误
             GDLog(@"未知错误");
         }
-    }else if([keyPath isEqualToString:@"loadedTimeRanges"]){ //当缓冲进度有变化的时候
+    }else if([keyPath isEqualToString:Player_LoadedTimeRanges]){ //当缓冲进度有变化的时候
 #if 0
         NSTimeInterval timeInterval = [self availableDuration];
         CMTime duration = _playerItem.duration;
@@ -166,17 +180,17 @@
         NSLog(@"Time Interval:%f,totla:%f",timeInterval,totalDuration);
 //        [self.videoProgress setProgress:timeInterval / totalDuration animated:YES];
 #endif
-    }else if ([keyPath isEqualToString:@"playbackLikelyToKeepUp"]){ //当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
+    }else if ([keyPath isEqualToString:Player_PlaybackLikelyToKeepUp]){ //当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
         GDLog(@"playbackLikelyToKeepUp");
         
-    }else if([keyPath isEqualToString:@"playbackBufferEmpty"]){  //当没有任何缓冲部分可以播放的时候
+    }else if([keyPath isEqualToString:Player_PlaybackBufferEmpty]){  //当没有任何缓冲部分可以播放的时候
        
         NSLog(@"playbackBufferEmpty");
-    }else if ([keyPath isEqualToString:@"playbackBufferFull"]){
+    }else if ([keyPath isEqualToString:Player_PlaybackBufferFull]){
         
         NSLog(@"playbackBufferFull: change : %@", change);
         
-    }else if([keyPath isEqualToString:@"presentationSize"]){      //获取到视频的大小的时候调用
+    }else if([keyPath isEqualToString:Player_PresentationSize]){      //获取到视频的大小的时候调用
        //CGSize size = _playerItem.presentationSize;
     }
     
@@ -195,13 +209,14 @@
 - (void)moviePlayDidEnd:(NSNotification *)notification {
     NSLog(@"Play end");
 }
+
 - (void)dealloc {
-    [self.playerItem removeObserver:self forKeyPath:@"status" context:nil];
-    [self.playerItem removeObserver:self forKeyPath:@"loadedTimeRanges" context:nil];
-    [self.playerItem removeObserver:self forKeyPath:@"playbackLikelyToKeepUp" context:nil];
-    [self.playerItem removeObserver:self forKeyPath:@"playbackBufferEmpty" context:nil];
-    [self.playerItem removeObserver:self forKeyPath:@"playbackBufferFull" context:nil];
-    [self.playerItem removeObserver:self forKeyPath:@"presentationSize" context:nil];
+    [self.playerItem removeObserver:self forKeyPath:Player_Status context:nil];
+    [self.playerItem removeObserver:self forKeyPath:Player_LoadedTimeRanges context:nil];
+    [self.playerItem removeObserver:self forKeyPath:Player_PlaybackLikelyToKeepUp context:nil];
+    [self.playerItem removeObserver:self forKeyPath:Player_PlaybackBufferEmpty context:nil];
+    [self.playerItem removeObserver:self forKeyPath:Player_PlaybackBufferFull context:nil];
+    [self.playerItem removeObserver:self forKeyPath:Player_PresentationSize context:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:self.playerItem];
 }
 - (void)didReceiveMemoryWarning {
@@ -223,34 +238,10 @@
     [super viewWillAppear:animated];
 //    self.navigationItem.hidesBackButton = YES;
     self.navigationController.navigationBarHidden = YES;
+    [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
+
 }
-#pragma mark - 旋转当前view的方法
-#if 0
-if (_isVertical) {
-    
-    [self.view bringSubviewToFront:_playerView];
-    [UIView animateWithDuration:0.3 animations:^{
-        self.navigationController.view.transform = CGAffineTransformMakeRotation(M_PI/2);
-        self.navigationController.view.frame = CGRectMake(0, 0, SCREENWIDTH, SCREENHEIGHT);
-        
-        _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
-        [_playerView clearViewUpdate_scaleScreen];
-    } completion:^(BOOL finished) {
-        _isVertical = NO;
-    }];
-}else {
-    [UIView animateWithDuration:0.3 animations:^{
-        self.navigationController.view.transform = CGAffineTransformIdentity;
-        self.navigationController.view.frame = [UIScreen mainScreen].bounds;
-        [[UIApplication sharedApplication] setStatusBarHidden:NO];
-        
-        _playerView.frame = PlayerViewFrame(SCREENWIDTH, 200);
-        [_playerView clearViewUpdate_scaleScreen];
-    } completion:^(BOOL finished) {
-        _isVertical = YES;
-    }];
-}
-#endif
+
 
 /*
 #pragma mark - Navigation

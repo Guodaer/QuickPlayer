@@ -18,7 +18,6 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
 //    self.navigationBarHidden = YES;
-    NSLog(@"222222222");
     [self.navigationBar setBackgroundImage:[UIImage imageNamed:@"alpha0"] forBarMetrics:0];
     
 

@@ -90,6 +90,32 @@
 
 #define iOS_VERSION_8_OR_LATER __IPHONE_OS_VERSION_MAX_ALLOWED>=__IPHONE_8_0
 
-
+#pragma mark - 旋转当前view的方法 Movieviewcontroller
+#if 0
+if (_isVertical) {
+    
+    [self.view bringSubviewToFront:_playerView];
+    [UIView animateWithDuration:0.3 animations:^{
+        self.navigationController.view.transform = CGAffineTransformMakeRotation(M_PI/2);
+        self.navigationController.view.frame = CGRectMake(0, 0, SCREENWIDTH, SCREENHEIGHT);
+        
+        _playerView.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
+        [_playerView clearViewUpdate_scaleScreen];
+    } completion:^(BOOL finished) {
+        _isVertical = NO;
+    }];
+}else {
+    [UIView animateWithDuration:0.3 animations:^{
+        self.navigationController.view.transform = CGAffineTransformIdentity;
+        self.navigationController.view.frame = [UIScreen mainScreen].bounds;
+        [[UIApplication sharedApplication] setStatusBarHidden:NO];
+        
+        _playerView.frame = PlayerViewFrame(SCREENWIDTH, 200);
+        [_playerView clearViewUpdate_scaleScreen];
+    } completion:^(BOOL finished) {
+        _isVertical = YES;
+    }];
+}
+#endif
 
 #endif /* GD_CustomCenter_h */
