@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		92F947C7139B8C0250E1565C /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E4A4D47F16FFDCBD42EAAD90 /* libPods.a */; };
+		B829CB5B1D236DDC00F4D0B9 /* GDAVPlayerTimeTool.m in Sources */ = {isa = PBXBuildFile; fileRef = B829CB5A1D236DDC00F4D0B9 /* GDAVPlayerTimeTool.m */; };
 		B892A5411D1BBFDB003D98BD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B892A5401D1BBFDB003D98BD /* main.m */; };
 		B892A5441D1BBFDB003D98BD /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B892A5431D1BBFDB003D98BD /* AppDelegate.m */; };
 		B892A54C1D1BBFDB003D98BD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B892A54B1D1BBFDB003D98BD /* Assets.xcassets */; };
@@ -41,6 +42,8 @@
 
 /* Begin PBXFileReference section */
 		70285E645444E0ED95D7E6EF /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
+		B829CB591D236DDC00F4D0B9 /* GDAVPlayerTimeTool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GDAVPlayerTimeTool.h; sourceTree = "<group>"; };
+		B829CB5A1D236DDC00F4D0B9 /* GDAVPlayerTimeTool.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GDAVPlayerTimeTool.m; sourceTree = "<group>"; };
 		B892A53C1D1BBFDA003D98BD /* QuickPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B892A5401D1BBFDB003D98BD /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		B892A5421D1BBFDB003D98BD /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -142,6 +145,8 @@
 				B892A5781D1BCD0F003D98BD /* MovieViewController.m */,
 				B8EA341A1D1CF3EC007A4CAF /* PlayerView.h */,
 				B8EA341B1D1CF3EC007A4CAF /* PlayerView.m */,
+				B829CB591D236DDC00F4D0B9 /* GDAVPlayerTimeTool.h */,
+				B829CB5A1D236DDC00F4D0B9 /* GDAVPlayerTimeTool.m */,
 				B892A57A1D1BCD76003D98BD /* GD_CustomCenter.h */,
 				B892A54B1D1BBFDB003D98BD /* Assets.xcassets */,
 				B892A54D1D1BBFDB003D98BD /* LaunchScreen.storyboard */,
@@ -367,6 +372,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B892A5441D1BBFDB003D98BD /* AppDelegate.m in Sources */,
+				B829CB5B1D236DDC00F4D0B9 /* GDAVPlayerTimeTool.m in Sources */,
 				B892A5411D1BBFDB003D98BD /* main.m in Sources */,
 				B892A5741D1BC1F9003D98BD /* RootViewController.m in Sources */,
 				B892A5791D1BCD0F003D98BD /* MovieViewController.m in Sources */,

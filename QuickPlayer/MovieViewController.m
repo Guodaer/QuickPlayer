@@ -21,13 +21,18 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 
 @interface MovieViewController ()<PlayerViewDelegate>
 {
-    PlayerView *_playerView;
     BOOL _isVertical;//是否是竖屏小view
+    BOOL _isPlay;   //是否播放
+    //判断是否为第一次布局
+    BOOL _isFisrtConfig;
 }
 
 @property (retain, nonatomic) AVPlayer *player;
 @property (nonatomic ,retain) AVPlayerItem *playerItem;
+@property (nonatomic, strong) PlayerView *playerView;
 @property (nonatomic, strong) UIButton *systemReturnBtn;
+@property (nonatomic, strong) id timerObserver;//用来监控播放时间的observer
+@property (nonatomic, assign) BOOL sliderValueChanging; //判断滑块是否滑动
 
 @end
 
@@ -38,8 +43,15 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     // Do any additional setup after loading the view.
     self.view.backgroundColor = [UIColor whiteColor];
     _isVertical = YES;
+    _isFisrtConfig = YES;
+    _isPlay = NO;
+    _sliderValueChanging = NO;
     [self makeUpPlayerView];
     self.systemReturnBtn.hidden = NO;
+
+}
+- (BOOL)shouldAutorotate{
+    return YES;
 }
 - (UIButton *)systemReturnBtn{
     if (!_systemReturnBtn) {
@@ -86,10 +98,24 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 #pragma mark - 旋转的通知
 -(void)orientationChanged:(NSNotification *)notification{
     [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
-}
-#pragma mark - 关闭设备自动旋转, 然后手动监测设备旋转方向来旋转avplayerView
--(BOOL)shouldAutorotate{
-    return NO;
+    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+    switch (orientation) {
+        case UIDeviceOrientationPortrait:
+            GDLog(@"Portrait");
+            break;
+        case UIDeviceOrientationLandscapeLeft:
+            GDLog(@"Left");
+            break;
+        case UIDeviceOrientationLandscapeRight:
+            GDLog(@"Right");
+            
+            break;
+        case UIDeviceOrientationPortraitUpsideDown:
+            GDLog(@"UpsideDown");
+            break;
+        default:
+            break;
+    }
 }
 
 #pragma mark - gd_deledate
@@ -143,16 +169,30 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
         }
         
     }else if (sender.tag == PlayButton_Tag){
-        GDLog(@"play-start");
-        
+        if (_isPlay) {
+            [self changeState:@"play_start"];
+        }
+        else {
+            [self changeState:@"play_pause"];
+        }
     }
     
 }
+- (void)changeState:(NSString *)imgName {
+    if ([imgName isEqualToString:@"play_start"]) {
+        [self.player pause];
+        _isPlay = NO;
+    }else if ([imgName isEqualToString:@"play_pause"]){
+        [self.player play];_isPlay = YES;
+    }
+    [_playerView.playButton setImage:XUIImage(imgName) forState:UIControlStateNormal];
+}
+
 #pragma mark - 临时播放按钮
 - (void)playBtn{
     UIButton *play = [UIButton buttonWithType:UIButtonTypeCustom];
     play.frame = CGRectMake(20, 320, 100, 50);
-    [play setTitle:@"Play" forState:UIControlStateNormal];
+    [play setTitle:@"temp" forState:UIControlStateNormal];
     [play setBackgroundImage:[self createImageWithColor:XUIColor(0x3b5286, 1)] forState:UIControlStateNormal];
     [play setBackgroundImage:[self createImageWithColor:XUIColor(0x3b5286, 0.75)] forState:UIControlStateHighlighted];
     play.layer.cornerRadius = 4;
@@ -167,32 +207,77 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     if ([keyPath isEqualToString:Player_Status]) {
         if (self.playerItem.status == AVPlayerItemStatusReadyToPlay) {   //准备好播放
             GDLog(@"贮备好播放");
+            if (!_isPlay) {
+                [self changeState:@"play_pause"];
+            }
+            if (_isFisrtConfig) {
+                [self readyToObserverSlider];//监控播放进度
+            }
         }else if(self.playerItem.status == AVPlayerItemStatusFailed){    //加载失败
-            NSLog(@"AVPlayerItemStatusFailed: 视频播放失败");
+            [self changeState:@"play_start"];
         }else if(self.playerItem.status == AVPlayerItemStatusUnknown){   //未知错误
-            GDLog(@"未知错误");
+            [self changeState:@"play_start"];
         }
     }else if([keyPath isEqualToString:Player_LoadedTimeRanges]){ //当缓冲进度有变化的时候
-#if 0
+
         NSTimeInterval timeInterval = [self availableDuration];
         CMTime duration = _playerItem.duration;
         CGFloat totalDuration = CMTimeGetSeconds(duration);
-        NSLog(@"Time Interval:%f,totla:%f",timeInterval,totalDuration);
-//        [self.videoProgress setProgress:timeInterval / totalDuration animated:YES];
-#endif
+        [_playerView.videoLoadProgressView setProgress:timeInterval/totalDuration animated:YES];
+
     }else if ([keyPath isEqualToString:Player_PlaybackLikelyToKeepUp]){ //当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
-        GDLog(@"playbackLikelyToKeepUp");
-        
     }else if([keyPath isEqualToString:Player_PlaybackBufferEmpty]){  //当没有任何缓冲部分可以播放的时候
-       
-        NSLog(@"playbackBufferEmpty");
+        [self changeState:@"play_start"];
     }else if ([keyPath isEqualToString:Player_PlaybackBufferFull]){
         
         NSLog(@"playbackBufferFull: change : %@", change);
         
     }else if([keyPath isEqualToString:Player_PresentationSize]){      //获取到视频的大小的时候调用
-       //CGSize size = _playerItem.presentationSize;
+//       CGSize size = _playerItem.presentationSize;
     }
+    
+}
+#pragma mark - 手动操作slider
+- (void)pansSlider_controlMovieProgress {
+    __weak typeof(self) weakSelf = self;
+    _playerView.SliderValuePans= ^(float value){
+        [weakSelf seekToTheTimeValue:value];
+    };
+    _playerView.SliderTouchInside = ^(float state) {
+        weakSelf.sliderValueChanging = NO;
+    };
+    
+}
+//跳转到指定位置
+-(void)seekToTheTimeValue:(float)value{
+    _sliderValueChanging = YES;
+    [self.player pause];
+    float totalDuration = CMTimeGetSeconds(self.playerItem.duration);
+    float current = totalDuration*value;
+    CMTime changedTime = CMTimeMakeWithSeconds(current, 1);
+    __weak typeof(self) weakSelf = self;
+    [self.player seekToTime:changedTime completionHandler:^(BOOL finished){
+        if (!weakSelf.sliderValueChanging) {
+            [weakSelf.player play];
+            [self changeState:@"play_pause"];
+        }
+        //更改avplayerView的播放状态, 并且改变button上的图片
+    }];
+}
+/**
+ *  监控播放进度
+ */
+- (void)readyToObserverSlider {
+    [self pansSlider_controlMovieProgress];
+    CMTime duration = self.playerItem.duration;
+    CGFloat totalDuration = CMTimeGetSeconds(duration);
+    __weak typeof(self) weakSelf = self;
+    self.timerObserver = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1) queue:nil usingBlock:^(CMTime time) {
+        long long currentSecond = weakSelf.playerItem.currentTime.value/weakSelf.playerItem.currentTime.timescale;
+        if (!weakSelf.sliderValueChanging) {
+            weakSelf.playerView.videoSlider.value = currentSecond/totalDuration;
+        }
+    }];
     
 }
 #pragma mark - 计算缓冲进度
@@ -208,6 +293,7 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 #pragma mark - 当前视频播放完毕
 - (void)moviePlayDidEnd:(NSNotification *)notification {
     NSLog(@"Play end");
+    [self changeState:@"play_start"];
 }
 
 - (void)dealloc {
@@ -217,7 +303,12 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     [self.playerItem removeObserver:self forKeyPath:Player_PlaybackBufferEmpty context:nil];
     [self.playerItem removeObserver:self forKeyPath:Player_PlaybackBufferFull context:nil];
     [self.playerItem removeObserver:self forKeyPath:Player_PresentationSize context:nil];
+    if (_timerObserver) {
+        [self.player removeTimeObserver:self.timerObserver];
+        _timerObserver = nil;
+    }
     [[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:self.playerItem];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
 }
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];

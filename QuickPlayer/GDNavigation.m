@@ -20,9 +20,13 @@
 //    self.navigationBarHidden = YES;
     [self.navigationBar setBackgroundImage:[UIImage imageNamed:@"alpha0"] forBarMetrics:0];
     
-
+    
 }
 
+- (BOOL)shouldAutorotate
+{
+    return self.topViewController.shouldAutorotate;
+}
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.

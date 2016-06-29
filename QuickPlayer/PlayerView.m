@@ -149,6 +149,7 @@
     UISlider *slider = [[UISlider alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_playButton.frame)+3, 0, SCREENWIDTH-106, 44)];
     [slider addTarget:self action:@selector(sliderlog:) forControlEvents:UIControlEventValueChanged];
     slider.maximumTrackTintColor = [UIColor clearColor];
+    [slider addTarget:self action:@selector(sliderTouchInside) forControlEvents:UIControlEventTouchUpInside];
     _videoSlider = slider;
     [_underView addSubview:_videoSlider];
     [_underView bringSubviewToFront:_videoSlider];
@@ -159,6 +160,11 @@
     [_underView addSubview:_timeLabel];
     
 }
+- (void)sliderTouchInside {
+    if (self.SliderTouchInside) {
+        self.SliderTouchInside(1);
+    }
+}
 - (UILabel *)time_Label{
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_playButton.frame)+5, 0, 80, 50)];
     label.textColor = XUIColor(0xffffff, 0.85);
@@ -168,7 +174,9 @@
 }
 #pragma mark - slider滑动
 - (void)sliderlog:(UISlider*)slider {
-    GDLog(@"%lf",slider.value);
+    if (self.SliderValuePans) {
+        self.SliderValuePans(slider.value);
+    }
 }
 #pragma mark - 点击事件
 - (void)btnClick:(UIButton *)sender {

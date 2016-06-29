@@ -34,7 +34,13 @@
     [playMovie addTarget:self action:@selector(playbtnClick:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:playMovie];
     
+//    [self shouldAutorotate];
+    
 }
+- (BOOL)shouldAutorotate{
+    return NO;
+}
+
 - (void)playbtnClick:(UIButton *)sender {
     self.navigationController.interactivePopGestureRecognizer.enabled = YES;
     self.navigationController.interactivePopGestureRecognizer.delegate = nil;
@@ -42,16 +48,8 @@
     MovieViewController *movieVC = [[MovieViewController alloc] init];
     [self.navigationController pushViewController:movieVC animated:YES];
     
-#if 0
-    NSURL *videoURL = [NSURL URLWithString:@"https://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4"];
-    AVPlayer *player = [AVPlayer playerWithURL:videoURL];
-    AVPlayerViewController *playerViewController = [AVPlayerViewController new];
-    playerViewController.player = player;
-    playerViewController.view.frame = CGRectMake(0, 0, SCREENHEIGHT, SCREENWIDTH);
-    playerViewController.view.transform = CGAffineTransformMakeRotation(M_PI_2);
-    [self presentViewController:playerViewController animated:YES completion:nil];
-#endif
 }
+
 - (UIImage*) createImageWithColor: (UIColor*) color
 {
     CGRect rect=CGRectMake(0,0, 1, 1);
