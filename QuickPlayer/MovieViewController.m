@@ -10,6 +10,8 @@
 #import <AVKit/AVKit.h>
 #import "GD_CustomCenter.h"
 #import "PlayerView.h"
+#import "GDAVPlayerTimeTool.h"
+
 #define PlayerViewFrame(width,height) CGRectMake(0, 20, width, height)
 #define PlayerUrl @"http://v.jxvdy.com/sendfile/w5bgP3A8JgiQQo5l0hvoNGE2H16WbN09X-ONHPq3P3C1BISgf7C-qVs6_c8oaw3zKScO78I--b0BGFBRxlpw13sf2e54QA"
 NSString * const Player_Status = @"status";                                 //获取到视频信息的状态, 成功就可以进行播放, 失败代表加载失败
@@ -245,6 +247,8 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     };
     _playerView.SliderTouchInside = ^(float state) {
         weakSelf.sliderValueChanging = NO;
+        [weakSelf.player play];
+        _isPlay = YES;
     };
     
 }
@@ -252,13 +256,13 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 -(void)seekToTheTimeValue:(float)value{
     _sliderValueChanging = YES;
     [self.player pause];
+    _isPlay = NO;
     float totalDuration = CMTimeGetSeconds(self.playerItem.duration);
     float current = totalDuration*value;
     CMTime changedTime = CMTimeMakeWithSeconds(current, 1);
     __weak typeof(self) weakSelf = self;
     [self.player seekToTime:changedTime completionHandler:^(BOOL finished){
         if (!weakSelf.sliderValueChanging) {
-            [weakSelf.player play];
             [self changeState:@"play_pause"];
         }
         //更改avplayerView的播放状态, 并且改变button上的图片
@@ -277,6 +281,8 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
         if (!weakSelf.sliderValueChanging) {
             weakSelf.playerView.videoSlider.value = currentSecond/totalDuration;
         }
+        weakSelf.playerView.timeLabel.text = [NSString stringWithFormat:@"%@/%@",calculateTimeWithTimeFormatter(currentSecond),calculateTimeWithTimeFormatter(totalDuration)];
+        
     }];
     
 }
