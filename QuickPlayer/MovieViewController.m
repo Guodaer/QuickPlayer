@@ -23,19 +23,17 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 
 @interface MovieViewController ()<PlayerViewDelegate>
 {
-    BOOL _isVertical;//是否是竖屏小view
-    BOOL _isPlay;   //是否播放
-    //判断是否为第一次布局
-    BOOL _isFisrtConfig;
+    BOOL _isVertical;           //是否是竖屏小view
+    BOOL _isFisrtConfig;        //判断是否为第一次布局
 }
 
 @property (retain, nonatomic) AVPlayer *player;
 @property (nonatomic ,retain) AVPlayerItem *playerItem;
 @property (nonatomic, strong) PlayerView *playerView;
 @property (nonatomic, strong) UIButton *systemReturnBtn;
-@property (nonatomic, strong) id timerObserver;//用来监控播放时间的observer
-@property (nonatomic, assign) BOOL sliderValueChanging; //判断滑块是否滑动
-
+@property (nonatomic, strong) id timerObserver;                 //用来监控播放时间的observer
+@property (nonatomic) BOOL sliderValueChanging;         //判断滑块是否滑动
+@property (nonatomic) BOOL isPlay;               //是否播放
 @end
 
 @implementation MovieViewController
@@ -80,10 +78,8 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     _playerView.gd_delegate = self;
     _playerView.backgroundColor = [UIColor blackColor];
     [self.view addSubview:_playerView];
-#if 1
     NSURL *videoUrl = [NSURL URLWithString:PlayerUrl];
     self.playerItem = [AVPlayerItem playerItemWithURL:videoUrl];
-#endif
     [self.playerItem addObserver:self forKeyPath:Player_Status options:NSKeyValueObservingOptionNew context:nil];
     [self.playerItem addObserver:self forKeyPath:Player_LoadedTimeRanges options:NSKeyValueObservingOptionNew context:nil];
     [self.playerItem addObserver:self forKeyPath:Player_PlaybackLikelyToKeepUp options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil];
@@ -185,7 +181,10 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
         [self.player pause];
         _isPlay = NO;
     }else if ([imgName isEqualToString:@"play_pause"]){
-        [self.player play];_isPlay = YES;
+        if (!_isPlay) {
+            NSLog(@"222222");
+            [self.player play];_isPlay = YES;
+        }
     }
     [_playerView.playButton setImage:XUIImage(imgName) forState:UIControlStateNormal];
 }
@@ -203,10 +202,14 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     [self.view addSubview:play];
 }
 - (void)playpausebtn:(UIButton *)sender{
-    [self.player play];
+    if (!_isPlay) {
+        NSLog(@"1111");
+        [self.player play]; _isPlay = YES;
+    }
 }
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
     if ([keyPath isEqualToString:Player_Status]) {
+        
         if (self.playerItem.status == AVPlayerItemStatusReadyToPlay) {   //准备好播放
             GDLog(@"贮备好播放");
             if (!_isPlay) {
@@ -220,25 +223,27 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
         }else if(self.playerItem.status == AVPlayerItemStatusUnknown){   //未知错误
             [self changeState:@"play_start"];
         }
-    }else if([keyPath isEqualToString:Player_LoadedTimeRanges]){ //当缓冲进度有变化的时候
+
+    }else if([keyPath isEqualToString:Player_LoadedTimeRanges]){         //当缓冲进度有变化的时候
 
         NSTimeInterval timeInterval = [self availableDuration];
         CMTime duration = _playerItem.duration;
         CGFloat totalDuration = CMTimeGetSeconds(duration);
         [_playerView.videoLoadProgressView setProgress:timeInterval/totalDuration animated:YES];
 
-    }else if ([keyPath isEqualToString:Player_PlaybackLikelyToKeepUp]){ //当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
-    }else if([keyPath isEqualToString:Player_PlaybackBufferEmpty]){  //当没有任何缓冲部分可以播放的时候
+    }else if ([keyPath isEqualToString:Player_PlaybackLikelyToKeepUp]){         //当视频播放因为各种状态播放停止的时候, 这个属性会发生变化
+    }else if([keyPath isEqualToString:Player_PlaybackBufferEmpty]){             //当没有任何缓冲部分可以播放的时候
         [self changeState:@"play_start"];
     }else if ([keyPath isEqualToString:Player_PlaybackBufferFull]){
         
         NSLog(@"playbackBufferFull: change : %@", change);
         
-    }else if([keyPath isEqualToString:Player_PresentationSize]){      //获取到视频的大小的时候调用
+    }else if([keyPath isEqualToString:Player_PresentationSize]){                //获取到视频的大小的时候调用
 //       CGSize size = _playerItem.presentationSize;
     }
     
 }
+
 #pragma mark - 手动操作slider
 - (void)pansSlider_controlMovieProgress {
     __weak typeof(self) weakSelf = self;
@@ -248,9 +253,8 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     _playerView.SliderTouchInside = ^(float state) {
         weakSelf.sliderValueChanging = NO;
         [weakSelf.player play];
-        _isPlay = YES;
+        weakSelf.isPlay = YES;
     };
-    
 }
 //跳转到指定位置
 -(void)seekToTheTimeValue:(float)value{
@@ -259,13 +263,13 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
     _isPlay = NO;
     float totalDuration = CMTimeGetSeconds(self.playerItem.duration);
     float current = totalDuration*value;
-    CMTime changedTime = CMTimeMakeWithSeconds(current, 1);
+    CMTime changedTime = CMTimeMakeWithSeconds(current, totalDuration);
     __weak typeof(self) weakSelf = self;
     [self.player seekToTime:changedTime completionHandler:^(BOOL finished){
         if (!weakSelf.sliderValueChanging) {
             [self changeState:@"play_pause"];
         }
-        //更改avplayerView的播放状态, 并且改变button上的图片
+
     }];
 }
 /**
@@ -303,6 +307,8 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 }
 
 - (void)dealloc {
+    NSLog(@"dealloc");
+    [self.player pause];
     [self.playerItem removeObserver:self forKeyPath:Player_Status context:nil];
     [self.playerItem removeObserver:self forKeyPath:Player_LoadedTimeRanges context:nil];
     [self.playerItem removeObserver:self forKeyPath:Player_PlaybackLikelyToKeepUp context:nil];
@@ -318,7 +324,6 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 }
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
 }
 - (UIImage*) createImageWithColor: (UIColor*) color
 {
@@ -333,7 +338,6 @@ NSString * const Player_PresentationSize = @"presentationSize";             //�
 }
 - (void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
-//    self.navigationItem.hidesBackButton = YES;
     self.navigationController.navigationBarHidden = YES;
     [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
 

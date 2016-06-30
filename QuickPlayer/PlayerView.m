@@ -99,7 +99,7 @@
 }
 #pragma mark - 上下两块View
 - (void)setupControlView {
-    
+#if 1
     _topView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, 44)];
     _topView.userInteractionEnabled = YES;
     _topView.backgroundColor = XUIColor(0xffffff, 0.13);
@@ -119,8 +119,10 @@
     _underView.alpha = 0;
     [_clearView addSubview:_underView];
     [self drawViewCotrol];
+#endif
 }
 - (void)drawViewCotrol {
+#if 1
     //全屏按钮
     UIButton *fullViewbutton = [UIButton buttonWithType:UIButtonTypeCustom];
     fullViewbutton.frame = CGRectMake(self.frame.size.width - 40, 4.5, 35, 35);
@@ -158,12 +160,13 @@
     _timeLabel = [self time_Label];
     _timeLabel.hidden = YES;
     [_underView addSubview:_timeLabel];
-    
+#endif
 }
 - (void)sliderTouchInside {
     if (self.SliderTouchInside) {
         self.SliderTouchInside(1);
     }
+
 }
 - (UILabel *)time_Label{
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_playButton.frame)+5, 0, 80, 50)];
@@ -178,6 +181,7 @@
         self.SliderValuePans(slider.value);
     }
 }
+
 #pragma mark - 点击事件
 - (void)btnClick:(UIButton *)sender {
     if ([_gd_delegate respondsToSelector:@selector(playerBtndidClicked:)]) {
